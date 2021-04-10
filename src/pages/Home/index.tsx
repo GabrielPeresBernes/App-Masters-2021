@@ -54,12 +54,8 @@ const Home: React.FC = () => {
       formRef.current?.setErrors({});
 
       const schema = Yup.object().shape({
-        name: Yup.string()
-          .required('Nome obrigatório')
-          .min(7, 'No mínimo 7 caracteres'),
-        email: Yup.string()
-          .required('E-mail obrigatório')
-          .email('Digite um e-mail válido'),
+        name: Yup.string().required('Nome obrigatório'),
+        email: Yup.string().required('E-mail obrigatório'),
         phone: Yup.string()
           .required('Telefone obrigatório')
           .matches(
@@ -95,25 +91,28 @@ const Home: React.FC = () => {
         const errors = getValidationErrors(err);
 
         formRef.current?.setErrors(errors);
-
-        return;
-      }
-
-      let error = '';
-
-      if (err.response.data.status === 505)
-        error =
-          'Parece que nossos servidores estão instáveis, tente novamente em alguns minutos.';
-      else {
-        error = err.response.data.reduce(
-          (acc: string, e: { name: string; error: string }) =>
-            (acc += `<p>${e.error}</p>`),
-          '',
+      } else if (err.response.data.status) {
+        setErrorMessage(
+          'Parece que nossos servidores estão instáveis,<br />tente novamente em alguns minutos.',
         );
-      }
 
-      setErrorMessage(error);
-      setDialog(true);
+        setDialog(true);
+      } else {
+        let errors = {};
+
+        err.response.data.forEach((e: { field: string; error: string }) => {
+          const { field, error } = e;
+          errors = { ...errors, [field]: error };
+        });
+
+        formRef.current?.setErrors(errors);
+
+        setErrorMessage(
+          'Parece que algumas informações estão erradas,<br />corrija os seus dados e tente novamente.',
+        );
+
+        setDialog(true);
+      }
     } finally {
       setLoading(false);
     }
